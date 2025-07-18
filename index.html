@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DigiClick - Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand-primary': '#1a1a1a',
+                        'brand-secondary': '#f3f4f6', // Lighter gray
+                        'brand-accent': '#4a90e2',
+                        'brand-accent-hover': '#357abd',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .modal-overlay { transition: opacity 0.3s ease-in-out; }
+        
+        .tab-btn {
+            padding: 0.75rem 1rem;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            color: #6b7280;
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-btn:hover {
+            color: #1a1a1a;
+        }
+        .tab-btn.active {
+            border-color: #4a90e2;
+            color: #4a90e2;
+        }
+        
+        /* Responsive Table Styles */
+        @media (max-width: 768px) {
+            .responsive-table thead {
+                display: none;
+            }
+            .responsive-table tr {
+                display: block;
+                margin-bottom: 1.5rem;
+                border: 1px solid #e5e7eb;
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+                padding: 1rem;
+            }
+            .responsive-table td {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.75rem 0;
+                border-bottom: 1px solid #f3f4f6;
+            }
+             .responsive-table td:last-child {
+                border-bottom: none;
+            }
+            .responsive-table td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                margin-right: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-brand-secondary">
+
+    <!-- Login View -->
+    <div id="login-view" class="flex items-center justify-center min-h-screen p-4">
+        <div class="w-full max-w-sm bg-white p-8 rounded-xl shadow-lg">
+            <h1 class="text-3xl font-bold text-center text-brand-primary mb-2">Admin Panel</h1>
+            <p class="text-center text-gray-500 mb-8">Please sign in to continue</p>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="admin-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="admin-email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-accent" required>
+                </div>
+                <div class="mb-6">
+                    <label for="admin-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="admin-password" name="password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-accent" required>
+                </div>
+                <p id="login-feedback" class="mb-4 text-sm text-center text-red-600"></p>
+                <button type="submit" class="w-full bg-brand-primary text-white font-bold py-3 rounded-md hover:bg-gray-800 transition-colors duration-300">Sign In</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Admin Dashboard (hidden by default) -->
+    <div id="admin-dashboard" class="hidden">
+        <header class="bg-white shadow-md sticky top-0 z-30">
+            <div class="container mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-brand-primary">DigiClick Dashboard</h1>
+                    <p id="user-role-display" class="text-sm text-gray-500"></p>
+                </div>
+                <button id="logout-btn" class="bg-red-500 text-white font-bold py-2 px-4 rounded-md hover:bg-red-600 transition-colors duration-300 flex items-center gap-2">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Logout</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 sm:px-6 py-8">
+            <!-- Tabs -->
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="flex space-x-2 sm:space-x-4 overflow-x-auto" aria-label="Tabs">
+                    <button class="tab-btn active shrink-0" data-tab="products">Products</button>
+                    <button class="tab-btn shrink-0" data-tab="categories">Categories</button>
+                    <button class="tab-btn shrink-0" data-tab="testimonials">Testimonials</button>
+                    <button class="tab-btn shrink-0" data-tab="site-content">Site Content</button>
+                    <button id="users-tab-btn" class="tab-btn shrink-0 hidden" data-tab="users">Users</button>
+                </nav>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-content">
+                <!-- Products Tab -->
+                <div id="products-tab" class="tab-pane active">
+                    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                        <h2 class="text-2xl sm:text-3xl font-bold">Products</h2>
+                        <button id="add-product-btn" class="bg-brand-accent text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent-hover transition-colors duration-300 flex items-center justify-center gap-2">
+                           <i data-lucide="plus" class="w-5 h-5"></i><span>Add Product</span>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-x-auto">
+                        <table class="w-full responsive-table">
+                            <thead><tr class="bg-gray-100">
+                                <th class="text-left font-semibold p-4">Name</th><th class="text-left font-semibold p-4">Category</th><th class="text-left font-semibold p-4">Variants</th><th class="text-left font-semibold p-4">Actions</th>
+                            </tr></thead>
+                            <tbody id="products-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Categories Tab -->
+                <div id="categories-tab" class="tab-pane hidden">
+                     <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                        <h2 class="text-2xl sm:text-3xl font-bold">Categories</h2>
+                        <button id="add-category-btn" class="bg-brand-accent text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent-hover transition-colors duration-300 flex items-center justify-center gap-2">
+                            <i data-lucide="plus" class="w-5 h-5"></i><span>Add Category</span>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-x-auto">
+                        <table class="w-full responsive-table">
+                             <thead><tr class="bg-gray-100">
+                                <th class="text-left font-semibold p-4">Name</th><th class="text-left font-semibold p-4">Image</th><th class="text-left font-semibold p-4">Actions</th>
+                            </tr></thead>
+                            <tbody id="categories-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Testimonials Tab -->
+                <div id="testimonials-tab" class="tab-pane hidden">
+                     <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                        <h2 class="text-2xl sm:text-3xl font-bold">Testimonials</h2>
+                        <button id="add-testimonial-btn" class="bg-brand-accent text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent-hover transition-colors duration-300 flex items-center justify-center gap-2">
+                           <i data-lucide="plus" class="w-5 h-5"></i><span>Add Testimonial</span>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-x-auto">
+                        <table class="w-full responsive-table">
+                             <thead><tr class="bg-gray-100">
+                                <th class="text-left font-semibold p-4">Name</th><th class="text-left font-semibold p-4">Location</th><th class="text-left font-semibold p-4">Text</th><th class="text-left font-semibold p-4">Actions</th>
+                            </tr></thead>
+                            <tbody id="testimonials-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Site Content Tab -->
+                <div id="site-content-tab" class="tab-pane hidden">
+                    <h2 class="text-2xl sm:text-3xl font-bold mb-6">Site Content</h2>
+                    <div class="bg-white rounded-lg shadow-lg p-6 sm:p-8">
+                        <form id="site-content-form">
+                            <h3 class="text-xl font-semibold mb-4 border-b pb-2">Hero Section</h3>
+                            <div class="mb-4">
+                                <label for="hero-title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                                <input type="text" id="hero-title" name="heroTitle" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div class="mb-4">
+                                <label for="hero-subtitle" class="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+                                <input type="text" id="hero-subtitle" name="heroSubtitle" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                             <div class="mb-6">
+                                <label for="hero-bg-image" class="block text-sm font-medium text-gray-700 mb-1">Background Image URL</label>
+                                <input type="url" id="hero-bg-image" name="heroBackgroundImage" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+
+                            <h3 class="text-xl font-semibold mb-4 mt-8 border-b pb-2">Promotion Bar</h3>
+                             <div class="mb-6">
+                                <label for="promo-text" class="block text-sm font-medium text-gray-700 mb-1">Text</label>
+                                <input type="text" id="promo-text" name="promotionText" class="w-full px-3 py-2 border border-gray-300 rounded-md">
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-gray-800">Save Site Content</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Users Tab -->
+                <div id="users-tab" class="tab-pane hidden">
+                     <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6 gap-4">
+                        <h2 class="text-2xl sm:text-3xl font-bold">Users</h2>
+                        <button id="add-user-btn" class="bg-brand-accent text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent-hover transition-colors duration-300 flex items-center justify-center gap-2">
+                            <i data-lucide="plus" class="w-5 h-5"></i><span>Add User</span>
+                        </button>
+                    </div>
+                    <div class="bg-white rounded-lg shadow-lg overflow-x-auto">
+                        <table class="w-full responsive-table">
+                             <thead><tr class="bg-gray-100">
+                                <th class="text-left font-semibold p-4">Email</th><th class="text-left font-semibold p-4">Role</th><th class="text-left font-semibold p-4">Actions</th>
+                            </tr></thead>
+                            <tbody id="users-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals -->
+    <div id="product-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+        <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6"><h2 id="product-modal-title" class="text-2xl font-bold">Add New Product</h2><button id="close-product-modal-btn" class="text-gray-500 hover:text-brand-primary"><i data-lucide="x"></i></button></div>
+            <form id="product-form" class="space-y-4">
+                <input type="hidden" id="product-id" name="id">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div><label for="product-name" class="block text-sm font-medium text-gray-700 mb-1">Product Name</label><input type="text" id="product-name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                    <div>
+                        <label for="product-category" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="product-category" name="category" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></select>
+                    </div>
+                </div>
+                <div><label for="product-image" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label><input type="url" id="product-image" name="image" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                <div><label for="product-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea id="product-description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md"></textarea></div>
+                <div><label for="product-tag" class="block text-sm font-medium text-gray-700 mb-1">Tag (e.g., NEW, SALE)</label><input type="text" id="product-tag" name="tag" class="w-full px-3 py-2 border border-gray-300 rounded-md"></div>
+                <div><h3 class="text-lg font-semibold mb-2">Variants</h3><div id="variants-container" class="space-y-3"></div><button type="button" id="add-variant-btn" class="mt-2 text-sm text-brand-accent font-semibold hover:underline">+ Add Variant</button></div>
+                <div class="mt-4 flex justify-end"><button type="submit" class="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-gray-800">Save Product</button></div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="category-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+         <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 max-w-lg w-full">
+             <div class="flex justify-between items-center mb-6"><h2 id="category-modal-title" class="text-2xl font-bold">Add New Category</h2><button id="close-category-modal-btn" class="text-gray-500 hover:text-brand-primary"><i data-lucide="x"></i></button></div>
+             <form id="category-form" class="space-y-4">
+                 <input type="hidden" id="category-id" name="id">
+                 <div><label for="category-name" class="block text-sm font-medium text-gray-700 mb-1">Category Name</label><input type="text" id="category-name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                 <div><label for="category-image" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label><input type="url" id="category-image" name="image" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                 <div class="pt-2 flex justify-end"><button type="submit" class="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-gray-800">Save Category</button></div>
+             </form>
+         </div>
+    </div>
+
+    <div id="testimonial-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+         <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 max-w-lg w-full">
+             <div class="flex justify-between items-center mb-6"><h2 id="testimonial-modal-title" class="text-2xl font-bold">Add New Testimonial</h2><button id="close-testimonial-modal-btn" class="text-gray-500 hover:text-brand-primary"><i data-lucide="x"></i></button></div>
+             <form id="testimonial-form" class="space-y-4">
+                 <input type="hidden" id="testimonial-id" name="id">
+                 <div><label for="testimonial-name" class="block text-sm font-medium text-gray-700 mb-1">Customer Name</label><input type="text" id="testimonial-name" name="name" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                 <div><label for="testimonial-location" class="block text-sm font-medium text-gray-700 mb-1">Location</label><input type="text" id="testimonial-location" name="location" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                 <div><label for="testimonial-image" class="block text-sm font-medium text-gray-700 mb-1">Image URL</label><input type="url" id="testimonial-image" name="image" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                 <div><label for="testimonial-text" class="block text-sm font-medium text-gray-700 mb-1">Testimonial Text</label><textarea id="testimonial-text" name="text" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></textarea></div>
+                 <div class="pt-2 flex justify-end"><button type="submit" class="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-gray-800">Save Testimonial</button></div>
+             </form>
+         </div>
+    </div>
+
+    <div id="user-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+         <div class="bg-white rounded-lg shadow-xl p-6 sm:p-8 max-w-lg w-full">
+             <div class="flex justify-between items-center mb-6"><h2 id="user-modal-title" class="text-2xl font-bold">Add New User</h2><button id="close-user-modal-btn" class="text-gray-500 hover:text-brand-primary"><i data-lucide="x"></i></button></div>
+             <form id="user-form" class="space-y-4">
+                 <input type="hidden" id="user-id" name="id">
+                 <div><label for="user-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" id="user-email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md" required></div>
+                 <div><label for="user-password" class="block text-sm font-medium text-gray-700 mb-1">Password (leave blank if unchanged)</label><input type="password" id="user-password" name="password" class="w-full px-3 py-2 border border-gray-300 rounded-md"></div>
+                 <div><label for="user-role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                    <select id="user-role" name="role" class="w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                        <option value="Editor">Editor</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                 </div>
+                 <div class="pt-2 flex justify-end"><button type="submit" class="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-gray-800">Save User</button></div>
+             </form>
+         </div>
+    </div>
+
+    <div id="confirmation-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none">
+        <div class="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full">
+            <h2 id="confirmation-title" class="text-xl font-bold mb-4">Are you sure?</h2>
+            <p id="confirmation-message" class="text-gray-600 mb-6">You won't be able to revert this!</p>
+            <div class="flex justify-end gap-4">
+                <button id="cancel-btn" class="bg-gray-200 text-gray-800 font-bold py-2 px-6 rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="confirm-delete-btn" class="bg-red-600 text-white font-bold py-2 px-6 rounded-md hover:bg-red-700">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Firebase Integration ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, serverTimestamp, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // NOTE: User creation and password changes from the admin panel would require a backend (Firebase Functions)
+        // This implementation will manage user roles in Firestore but not user creation/deletion in Firebase Auth.
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgErP_g_ZqKraxqFAQi3W0YdwwkQdAZzg",
+            authDomain: "my-chat-app-a9b9e.firebaseapp.com",
+            projectId: "my-chat-app-a9b9e",
+            storageBucket: "my-chat-app-a9b9e.appspot.com",
+            messagingSenderId: "292137527608",
+            appId: "1:292137527608:web:692b165effa77e79bf79cd"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const productsCollection = collection(db, 'products');
+        const categoriesCollection = collection(db, 'categories');
+        const testimonialsCollection = collection(db, 'testimonials');
+        const usersCollection = collection(db, 'adminUsers'); // Collection for admin roles
+        const siteContentDocRef = doc(db, 'siteContent', 'homepage');
+
+        let products = [], categories = [], testimonials = [], users = [];
+        let unsubscribers = [];
+        let deleteAction = null;
+        let currentUserRole = null;
+
+        async function checkLoginState() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    const userDocRef = doc(db, 'adminUsers', user.uid);
+                    const userDoc = await getDoc(userDocRef);
+
+                    if (userDoc.exists()) {
+                        currentUserRole = userDoc.data().role;
+                        document.getElementById('user-role-display').textContent = `Logged in as ${user.email} (${currentUserRole})`;
+                        document.getElementById('login-view').classList.add('hidden');
+                        document.getElementById('admin-dashboard').classList.remove('hidden');
+                        lucide.createIcons();
+                        initializeDashboard();
+                        updateUIAccess();
+                    } else {
+                        alert("You are not authorized to access this panel.");
+                        handleLogout();
+                    }
+                } else {
+                    document.getElementById('login-view').classList.remove('hidden');
+                    document.getElementById('admin-dashboard').classList.add('hidden');
+                    unsubscribers.forEach(unsub => unsub());
+                    unsubscribers = [];
+                    currentUserRole = null;
+                }
+            });
+        }
+
+        function initializeDashboard() {
+            if (unsubscribers.length > 0) return;
+            listenToCollection(productsCollection, (data) => { products = data; renderProductsTable(products); });
+            listenToCollection(categoriesCollection, (data) => { categories = data; renderCategoriesTable(categories); });
+            listenToCollection(testimonialsCollection, (data) => { testimonials = data; renderTestimonialsTable(testimonials); });
+            if (currentUserRole === 'Admin') {
+                listenToCollection(usersCollection, (data) => { users = data; renderUsersTable(users); });
+            }
+            loadSiteContent();
+        }
+
+        function updateUIAccess() {
+            const usersTabBtn = document.getElementById('users-tab-btn');
+            if (currentUserRole === 'Admin') {
+                usersTabBtn.classList.remove('hidden');
+            } else {
+                usersTabBtn.classList.add('hidden');
+            }
+        }
+        
+        function listenToCollection(coll, callback) {
+            const unsubscribe = onSnapshot(coll, (snapshot) => {
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                callback(data);
+            });
+            unsubscribers.push(unsubscribe);
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            const feedback = document.getElementById('login-feedback');
+            
+            signInWithEmailAndPassword(auth, email, password)
+                .catch((error) => {
+                    feedback.textContent = 'Invalid email or password.';
+                    console.error("Login Error:", error);
+                });
+        }
+
+        function handleLogout() {
+            signOut(auth);
+        }
+
+        function renderProductsTable(data) {
+            const body = document.getElementById('products-table-body');
+            body.innerHTML = data.length ? data.map(p => `
+                <tr>
+                    <td data-label="Name" class="p-4 font-medium">${p.name}</td>
+                    <td data-label="Category" class="p-4 text-gray-600">${p.category}</td>
+                    <td data-label="Variants" class="p-4 text-gray-600">${p.variants ? p.variants.length : 0}</td>
+                    <td data-label="Actions" class="p-4"><button class="edit-btn text-blue-600 hover:underline mr-4" data-type="product" data-id="${p.id}">Edit</button><button class="delete-btn text-red-600 hover:underline" data-type="product" data-id="${p.id}">Delete</button></td>
+                </tr>`).join('') : '<tr><td colspan="4" class="text-center p-8">No products found.</td></tr>';
+        }
+
+        function renderCategoriesTable(data) {
+            const body = document.getElementById('categories-table-body');
+            body.innerHTML = data.length ? data.map(c => `
+                <tr>
+                    <td data-label="Name" class="p-4 font-medium">${c.name}</td>
+                    <td data-label="Image" class="p-4"><img src="${c.image}" class="w-20 h-12 object-cover rounded-md"/></td>
+                    <td data-label="Actions" class="p-4"><button class="edit-btn text-blue-600 hover:underline mr-4" data-type="category" data-id="${c.id}">Edit</button><button class="delete-btn text-red-600 hover:underline" data-type="category" data-id="${c.id}">Delete</button></td>
+                </tr>`).join('') : '<tr><td colspan="3" class="text-center p-8">No categories found.</td></tr>';
+        }
+
+        function renderTestimonialsTable(data) {
+            const body = document.getElementById('testimonials-table-body');
+            body.innerHTML = data.length ? data.map(t => `
+                <tr>
+                    <td data-label="Name" class="p-4 font-medium">${t.name}</td>
+                    <td data-label="Location" class="p-4 text-gray-600">${t.location}</td>
+                    <td data-label="Text" class="p-4 text-gray-600 truncate max-w-xs">${t.text}</td>
+                    <td data-label="Actions" class="p-4"><button class="edit-btn text-blue-600 hover:underline mr-4" data-type="testimonial" data-id="${t.id}">Edit</button><button class="delete-btn text-red-600 hover:underline" data-type="testimonial" data-id="${t.id}">Delete</button></td>
+                </tr>`).join('') : '<tr><td colspan="4" class="text-center p-8">No testimonials found.</td></tr>';
+        }
+
+        function renderUsersTable(data) {
+            const body = document.getElementById('users-table-body');
+            body.innerHTML = data.length ? data.map(u => `
+                <tr>
+                    <td data-label="Email" class="p-4 font-medium">${u.email}</td>
+                    <td data-label="Role" class="p-4 text-gray-600">${u.role}</td>
+                    <td data-label="Actions" class="p-4">
+                        <button class="edit-btn text-blue-600 hover:underline mr-4" data-type="user" data-id="${u.id}">Edit Role</button>
+                        ${auth.currentUser.uid !== u.id ? `<button class="delete-btn text-red-600 hover:underline" data-type="user" data-id="${u.id}">Delete</button>` : ''}
+                    </td>
+                </tr>`).join('') : '<tr><td colspan="3" class="text-center p-8">No users found.</td></tr>';
+        }
+
+        function openModal(modalId, item, type) {
+            const modal = document.getElementById(modalId);
+            const form = modal.querySelector('form');
+            form.reset();
+            form.querySelector('input[type="hidden"]').value = '';
+            
+            if (item) {
+                modal.querySelector('h2').textContent = `Edit ${type}`;
+                form.querySelector('input[type="hidden"]').value = item.id;
+                Object.keys(item).forEach(key => {
+                    const input = form.querySelector(`[name="${key}"]`);
+                    if (input) input.value = item[key];
+                });
+                if (type === 'Product' && item.variants) {
+                    document.getElementById('variants-container').innerHTML = '';
+                    item.variants.forEach(v => addVariantInput(v));
+                }
+                if (type === 'User') {
+                    form.querySelector('[name="email"]').disabled = true;
+                    form.querySelector('[name="password"]').parentElement.classList.add('hidden');
+                }
+            } else {
+                modal.querySelector('h2').textContent = `Add New ${type}`;
+                if (type === 'Product') {
+                    document.getElementById('variants-container').innerHTML = '';
+                    addVariantInput();
+                }
+                 if (type === 'User') {
+                    form.querySelector('[name="email"]').disabled = false;
+                    form.querySelector('[name="password"]').parentElement.classList.remove('hidden');
+                }
+            }
+
+            if (type === 'Product') {
+                const categorySelect = document.getElementById('product-category');
+                categorySelect.innerHTML = categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+                if (item && item.category) {
+                    categorySelect.value = item.category;
+                }
+            }
+
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            lucide.createIcons();
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('opacity-0', 'pointer-events-none'); }
+
+        async function handleFormSubmit(e, type, collection) {
+            e.preventDefault();
+            const form = e.target;
+            const id = form.querySelector('input[type="hidden"]').value;
+            
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            delete data.id;
+
+            if (type === 'User' && !data.password) {
+                delete data.password;
+            }
+            
+            if (type === 'Product') {
+                const variantNodes = document.getElementById('variants-container').querySelectorAll('.variant-item');
+                data.variants = Array.from(variantNodes).map(node => ({
+                    name: node.querySelector('.variant-name').value,
+                    price: parseFloat(node.querySelector('.variant-price').value) || 0,
+                    paymentLink: node.querySelector('.variant-link').value
+                }));
+            }
+            
+            if (type === 'User') {
+                alert("User creation/deletion from admin panel requires a secure backend setup (e.g., Firebase Functions) and is disabled in this demo.");
+                if (id) {
+                    try {
+                        await updateDoc(doc(db, collection.path, id), { role: data.role });
+                        closeModal('user-modal');
+                    } catch (error) { console.error("Error updating role:", error); }
+                }
+                return;
+            }
+
+            try {
+                if (id) await updateDoc(doc(db, collection.path, id), { ...data, updatedAt: serverTimestamp() });
+                else await addDoc(collection, { ...data, createdAt: serverTimestamp() });
+                closeModal(`${type.toLowerCase()}-modal`);
+            } catch (error) { console.error(`Error saving ${type}:`, error); alert(`Error saving ${type}. Check console for details.`); }
+        }
+
+        async function loadSiteContent() {
+            const docSnap = await getDoc(siteContentDocRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                document.querySelector('[name="heroTitle"]').value = data.heroTitle || '';
+                document.querySelector('[name="heroSubtitle"]').value = data.heroSubtitle || '';
+                document.querySelector('[name="heroBackgroundImage"]').value = data.heroBackgroundImage || '';
+                document.querySelector('[name="promotionText"]').value = data.promotionText || '';
+            }
+        }
+        
+        async function handleSiteContentFormSubmit(e) {
+            e.preventDefault();
+            const form = e.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            data.updatedAt = serverTimestamp();
+            try {
+                await setDoc(siteContentDocRef, data, { merge: true });
+                alert('Site content updated!');
+            } catch (error) { console.error("Error saving site content:", error); alert("Error saving site content."); }
+        }
+        
+        function showConfirmationModal(id, type, collection) {
+            if (type === 'user' && currentUserRole !== 'Admin') {
+                alert("You don't have permission to delete users.");
+                return;
+            }
+            const modal = document.getElementById('confirmation-modal');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            deleteAction = async () => {
+                try {
+                    await deleteDoc(doc(db, collection.path, id));
+                } catch (error) { console.error(`Error deleting ${type}:`, error); alert(`Error deleting ${type}.`); }
+                finally { closeConfirmationModal(); }
+            };
+        }
+
+        function closeConfirmationModal() { document.getElementById('confirmation-modal').classList.add('opacity-0', 'pointer-events-none'); deleteAction = null; }
+
+        document.addEventListener('DOMContentLoaded', checkLoginState);
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('logout-btn').addEventListener('click', handleLogout);
+        
+        document.querySelector('.flex[aria-label="Tabs"]').addEventListener('click', (e) => {
+            if (e.target.matches('.tab-btn')) {
+                const tabId = e.target.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('hidden'));
+                document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('add-product-btn').addEventListener('click', () => openModal('product-modal', null, 'Product'));
+        document.getElementById('add-category-btn').addEventListener('click', () => openModal('category-modal', null, 'Category'));
+        document.getElementById('add-testimonial-btn').addEventListener('click', () => openModal('testimonial-modal', null, 'Testimonial'));
+        document.getElementById('add-user-btn').addEventListener('click', () => openModal('user-modal', null, 'User'));
+        
+        ['product', 'category', 'testimonial', 'user'].forEach(type => {
+            document.getElementById(`close-${type}-modal-btn`).addEventListener('click', () => closeModal(`${type}-modal`));
+        });
+
+        document.getElementById('product-form').addEventListener('submit', (e) => handleFormSubmit(e, 'Product', productsCollection));
+        document.getElementById('category-form').addEventListener('submit', (e) => handleFormSubmit(e, 'Category', categoriesCollection));
+        document.getElementById('testimonial-form').addEventListener('submit', (e) => handleFormSubmit(e, 'Testimonial', testimonialsCollection));
+        document.getElementById('user-form').addEventListener('submit', (e) => handleFormSubmit(e, 'User', usersCollection));
+        document.getElementById('site-content-form').addEventListener('submit', handleSiteContentFormSubmit);
+        
+        document.getElementById('tab-content').addEventListener('click', (e) => {
+            const { type, id } = e.target.dataset;
+            if (!type || !id) return;
+            const collections = { product: products, category: categories, testimonial: testimonials, user: users };
+            const item = collections[type].find(i => i.id === id);
+            
+            if (e.target.classList.contains('edit-btn')) {
+                if (item) openModal(`${type}-modal`, item, type.charAt(0).toUpperCase() + type.slice(1));
+            }
+            if (e.target.classList.contains('delete-btn')) {
+                const firestoreCollections = { product: productsCollection, category: categoriesCollection, testimonial: testimonialsCollection, user: usersCollection };
+                showConfirmationModal(id, type, firestoreCollections[type]);
+            }
+        });
+        
+        document.getElementById('cancel-btn').addEventListener('click', closeConfirmationModal);
+        document.getElementById('confirm-delete-btn').addEventListener('click', () => { if (deleteAction) deleteAction(); });
+
+        function addVariantInput(variant = { name: '', price: '', paymentLink: '' }) {
+            const div = document.createElement('div');
+            div.className = 'variant-item p-3 border rounded-md relative';
+            div.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><input type="text" placeholder="Variant Name" class="variant-name w-full px-2 py-1 border rounded" value="${variant.name}" required><input type="number" placeholder="Price (₹)" class="variant-price w-full px-2 py-1 border rounded" value="${variant.price}" required><input type="url" placeholder="Payment Link" class="variant-link w-full px-2 py-1 border rounded" value="${variant.paymentLink}" required></div><button type="button" class="remove-variant-btn absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-lg font-bold">&times;</button>`;
+            document.getElementById('variants-container').appendChild(div);
+        }
+        document.getElementById('add-variant-btn').addEventListener('click', () => addVariantInput());
+        document.getElementById('variants-container').addEventListener('click', (e) => { if (e.target.classList.contains('remove-variant-btn')) e.target.closest('.variant-item').remove(); });
+    </script>
+</body>
+</html>
